@@ -1,0 +1,154 @@
+---
+title: 'Lab #7 (model)'
+author: "Jerid Francom"
+date: "10/18/2021"
+output: 
+  html_document: 
+    toc: yes
+    number_sections: yes
+    df_print: kable
+  pdf_document: 
+    toc: yes
+    number_sections: yes
+    latex_engine: xelatex
+---
+
+```{r setup, message=FALSE}
+library(tidyverse) # data manipulation
+library(readtext)  # read files
+library(tidytext)  # separate text 
+
+source("functions/functions.R") # source the functions in 'functions.R'
+```
+
+# Overview
+
+The goal of this script is to read and curate the running text version of the [ACTIV-ES Corpus](https://github.com/francojc/activ-es) corpus. The data is organized by sentences and includes metadata on the language, country, year, title, type, genre, and imdb ID. The curated data is stored in the `data/derived/` directory and includes a data dictionary file for documentation of the processing steps performed here. 
+
+# Tasks
+
+## Orientation
+
+The [ACTIV-ES Corpus](https://github.com/francojc/activ-es) is a corpus of TV/ Movie transcripts from three Spanish-speaking countries (Argentina, Mexico, and Spain). 
+
+The data acquired for this project is the plain-text version of the corpus. According to the corpus documentation, the name of each file in the corpus contains various pieces of metadata information including: language code, country, year, title, type, genre, and IMDb ID. This information is separated by underscores `_`. 
+
+
+The idealized tidy dataset structure for this curated data is the following:
+
+
+```{r actives-curated-idealized}
+tribble(
+  ~lang, ~country, ~year, ~title, ~type, ~genre, ~imdb_id, ~sentences,
+  "es", "Argentina", "1952", "Esposa último modelo", "movie", "n", "199500", "... sentence ...",
+  "...", "...", "...", "...", "...", "...", "...", "... sentence ..."
+)
+```
+
+## Tidy the data
+
+The first step is to read in all of the `.run` files. I will use the `readtext()` function from the readtext package. I will specify for the `file = ` argument a wildcard `*.run` to match all the relevant corpus files. 
+
+```{r actives-read-files}
+actives_files <- 
+  readtext(file = "data/original/actives/*.run", # read the `.run` files
+           verbosity = 0) # suppress warnings
+
+glimpse(actives_files) # preview structure
+```
+
+We can see from the preview of the data frame structure that there are now two columns: `doc_id` and `text`. The first contains the corpus file names and the metadata and the second contains the transcripts for each of the TV/ Movies in the corpus. 
+
+### Metadata
+
+I will now curate the metadata contained in the `doc_id` column. To do this I will use the `separate()` function to split the values of `doc_id` by underscores `_` adding each segment into the seven new columns:  `lang`, `country`, `year`, `title`, `type`, `genre`, `imdb_id`. 
+
+```{r actives-metadata-separate}
+actives_meta <- 
+  actives_files %>% # dataset
+  separate(col = doc_id, # column to separate
+           into = c("lang", "country", "year", "title", "type", "genre", "imdb_id"), # new columns
+           sep = "_") %>% # character to separate doc_id column
+  as_tibble() # convert to tibble
+
+actives_meta %>% 
+  select(-text) %>% # don't show the text column
+  slice_head(n = 5) # preview
+```
+
+The `title` and the `imdb_id` columns have artifacts to clean up. In the `title` I will replace all of the hyphens `-` with whitespaces and in the `imdb_id` I will remove the trailing `.run`. 
+
+```{r actives-metadata-clean}
+actives_meta <- 
+  actives_meta %>% # dataset
+  mutate(title = str_replace_all(title, "-", " ")) %>%  # replace '-` with " " in title
+  mutate(imdb_id = str_remove(imdb_id, "\\.run")) # remove '.run' in imdb_id
+
+actives_meta %>% 
+  select(-text) %>% # don't show the text column
+  slice_head(n = 5) # preview
+```
+
+The metadata structure looks good. 
+
+### Text
+
+It's now time to turn to the `text` column and separate the rows into sentences. To do this I will use the tidytext package, specifically the `unnest_tokens()` function. I will use the `text` column as the input, create a new column `sentences` for the sentences, make sure to set `token = ` to 'sentences' (see `?unnest_tokens` for more information), and avoid lowercasing the text (`to_lower = FALSE`). 
+
+```{r actives-text-separate}
+actives_meta_sentences <- 
+  actives_meta %>% # dataset
+  unnest_tokens(output = "sentences", # new column to create
+                input = "text", # input column 'text'
+                token = "sentences", # separate into sentences
+                to_lower = FALSE) # do not lowercase text
+
+actives_meta_sentences %>% 
+  slice_head(n = 5) # preview
+```
+
+On inspection it appears that now each row corresponds to a sentence from each of the corpus files. The original metadata is still in the tidy format that we created.  
+
+```{r actives-structure-preview}
+glimpse(actives_meta_sentences) # preview structure
+```
+
+The preview of the dataset structure shows that there are `r nrow(actives_meta_sentences)` rows (i.e. sentences) in the curated corpus dataset.
+
+## Write the dataset
+
+Now I will write this curated dataset (`actives_meta_sentences`) to disk to the `data/derived/actives/` directory. 
+
+First I will create the `actives/` subdirectory, and then write the `.csv` file to this directory. 
+
+```{r actives-write-dataset}
+fs::dir_create("data/derived/actives/")
+write_csv(actives_meta_sentences, file = "data/derived/actives/actives_curated.csv")
+```
+
+Preview the `data/derived/` directory structure. 
+
+```{r derived-data-structure}
+fs::dir_tree("data/derived/")
+```
+
+## Documentation
+
+As a final step to ensure that the curated dataset is documented, I will use the `data_dic_starter()` function to create the starter documentation file.
+
+```{r actives-curated-data-dictionary}
+data_dic_starter(data = actives_meta_sentences, file_path = "data/derived/actives/actives_curated_data_dictionary.csv")
+```
+
+I downloaded the data dictionary file and added the relevant documentation. Save the file as `.csv` and upload it to the same directory. 
+
+I've read the updated documentation file and printed it below.
+
+```{r actives-data-dictionary, message=FALSE}
+read_csv(file = "data/derived/actives/actives_curated_data_dictionary.csv")
+```
+
+
+# Assessment
+
+...
