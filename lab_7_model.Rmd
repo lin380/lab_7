@@ -136,7 +136,7 @@ fs::dir_tree("data/derived/")
 
 As a final step to ensure that the curated dataset is documented, I will use the `data_dic_starter()` function to create the starter documentation file.
 
-```{r actives-curated-data-dictionary}
+```{r actives-curated-data-dictionary, eval=FALSE}
 data_dic_starter(data = actives_meta_sentences, file_path = "data/derived/actives/actives_curated_data_dictionary.csv")
 ```
 

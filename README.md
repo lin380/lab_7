@@ -77,6 +77,7 @@ fs::dir_tree("data/derived/")
 #### Document
 
 - Use the `data_dic_starter()` function that was sourced from the `functions/functions.R` file to create the starter documentation file. Be sure to name your documentation file so that it is clear that this data dictionary file corresponds to the curated dataset you've just created.
+  - Make sure to add `eval=FALSE` to the code chunk that creates the documentation starter file. This will ensure that when you knit this R Markdown document in the future, it will not overwrite the updates to this file that you will perform in the next steps!
 - Download the starter documentation `.csv` file from RStudio Cloud to your computer and edit this `.csv` file in a spreadsheet software (such as MS Excel or Apple Numbers) adding the relevant documentation information.
 - After updating this `.csv` file in spreadsheet software save it as a `.csv` and upload it to RStudio Cloud, overwriting the original starter documentation.
 - Read the updated documentation `.csv` file and print the table structure to your R Markdown output. 
